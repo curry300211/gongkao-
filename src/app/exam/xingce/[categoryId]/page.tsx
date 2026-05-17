@@ -1,16 +1,28 @@
 import Link from "next/link";
 import { Video } from "lucide-react";
 import { db } from "@/lib/db";
+import { notFound } from "next/navigation";
 import { VideoItem } from "@/components/video/video-item";
 
 export const dynamic = "force-dynamic";
 
-export default async function ShenlunPage() {
+export default async function XingceCategoryPage({
+  params,
+}: {
+  params: Promise<{ categoryId: string }>;
+}) {
+  const { categoryId } = await params;
+  const cat = await db.category.findUnique({
+    where: { id: parseInt(categoryId) },
+  });
+  if (!cat) notFound();
+
   const videos = await db.video.findMany({
-    where: { section: "shenlun" },
+    where: { categoryId: cat.id, section: "xingce" },
     orderBy: [{ instructor: "asc" }, { sortOrder: "asc" }],
   });
 
+  // Group by instructor
   const grouped: Record<string, typeof videos> = {};
   for (const v of videos) {
     const key = v.instructor || "未注明讲师";
@@ -19,17 +31,29 @@ export default async function ShenlunPage() {
 
   return (
     <div className="mx-auto max-w-4xl px-4 py-6 md:py-10">
-      <h1 className="text-2xl font-extrabold tracking-tight">申论</h1>
-      <p className="mt-1 text-muted-foreground">
-        概括题 · 对策题 · 议论文写作 · 公文写作
-      </p>
+      <Link
+        href="/exam/xingce"
+        className="text-sm text-muted-foreground hover:text-primary"
+      >
+        ← 行测
+      </Link>
+      <h1 className="mt-2 text-2xl font-extrabold tracking-tight">
+        {cat.name.replace("行测-", "")}
+      </h1>
+      <p className="mt-1 text-muted-foreground">{cat.description}</p>
 
-      <div className="mt-3">
+      <div className="mt-2 flex items-center gap-3">
         <Link
-          href="/videos/new?section=shenlun"
-          className="inline-flex rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
+          href={`/videos/new?section=xingce&categoryId=${cat.id}`}
+          className="rounded-full bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground hover:bg-primary/90"
         >
           + 添加视频
+        </Link>
+        <Link
+          href={`/quiz?categoryId=${cat.id}`}
+          className="rounded-full border border-border bg-card px-4 py-1.5 text-sm font-medium hover:bg-accent"
+        >
+          刷此模块题目
         </Link>
       </div>
 
@@ -38,14 +62,14 @@ export default async function ShenlunPage() {
           <Video size={32} className="mx-auto text-muted-foreground/50" />
           <p className="mt-3 text-muted-foreground">暂无视频</p>
           <p className="mt-1 text-sm text-muted-foreground">
-            点击上方按钮添加申论讲师视频
+            点击上方按钮添加讲师视频
           </p>
         </div>
       ) : (
         <div className="mt-6 space-y-8">
           {Object.entries(grouped).map(([instructor, vids]) => (
             <div key={instructor}>
-              <h2 className="text-lg font-bold text-teal-600 dark:text-teal-400 pb-2 border-b-2 border-teal-500/30 mb-3">
+              <h2 className="text-lg font-bold text-primary pb-2 border-b-2 border-primary/30 mb-3">
                 {instructor}
               </h2>
               <div className="space-y-1">

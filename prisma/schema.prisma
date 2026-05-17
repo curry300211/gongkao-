@@ -108,23 +108,26 @@ model EntryTag {
 }
 
 model Video {
-  id           Int            @id @default(autoincrement())
-  title        String
-  description  String?
-  url          String         @default("")
-  embedUrl     String?
-  localPath    String?
-  instructor   String         @default("")
-  section      ExamType       @default(xingce)
-  categoryId   Int?
-  category     Category?      @relation(fields: [categoryId], references: [id])
-  durationSec  Int?
-  thumbnailUrl String?
-  sortOrder    Int            @default(0)
-  createdAt    DateTime       @default(now())
-  updatedAt    DateTime       @updatedAt
-  progress     VideoProgress[]
-  notes        VideoNote[]
+  id            Int            @id @default(autoincrement())
+  title         String
+  description   String?
+  url           String         @default("")
+  embedUrl      String?
+  localPath     String?
+  cloudType     String         @default("")
+  cloudUrl      String         @default("")
+  cloudPassword String         @default("")
+  instructor    String         @default("")
+  section       ExamType       @default(xingce)
+  categoryId    Int?
+  category      Category?      @relation(fields: [categoryId], references: [id])
+  durationSec   Int?
+  thumbnailUrl  String?
+  sortOrder     Int            @default(0)
+  createdAt     DateTime       @default(now())
+  updatedAt     DateTime       @updatedAt
+  progress      VideoProgress[]
+  notes         VideoNote[]
 }
 
 model VideoProgress {

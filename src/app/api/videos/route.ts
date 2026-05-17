@@ -2,6 +2,12 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 
 export async function GET(req: NextRequest) {
+  const id = req.nextUrl.searchParams.get("id");
+  if (id) {
+    const video = await db.video.findUnique({ where: { id: parseInt(id) } });
+    return NextResponse.json(video || null);
+  }
+
   const section = req.nextUrl.searchParams.get("section");
   const categoryId = req.nextUrl.searchParams.get("categoryId");
 
@@ -27,6 +33,9 @@ export async function POST(req: NextRequest) {
       title,
       url: url || "",
       embedUrl: body.embedUrl || null,
+      cloudType: body.cloudType || "",
+      cloudUrl: body.cloudUrl || "",
+      cloudPassword: body.cloudPassword || "",
       instructor: instructor || "",
       description: description || "",
       section: section || "xingce",
