@@ -1,0 +1,331 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+enum ExamType {
+  xingce
+  shenlun
+}
+
+enum QuestionType {
+  common_knowledge
+  verbal
+  quantitative
+  judgment
+  data_analysis
+  shenlun_summary
+  shenlun_countermeasure
+  shenlun_essay
+}
+
+enum Difficulty {
+  easy
+  medium
+  hard
+}
+
+enum TestMode {
+  question_by_question
+  paper_gen
+  mock_exam
+}
+
+enum SessionStatus {
+  in_progress
+  completed
+  abandoned
+}
+
+enum WrongStatus {
+  active
+  eliminated
+}
+
+enum ActivityType {
+  video_watch
+  quiz_practice
+  knowledge_reading
+}
+
+enum Theme {
+  light
+  dark
+  system
+}
+
+enum FontSize {
+  small
+  medium
+  large
+  xlarge
+}
+
+model Category {
+  id          Int        @id @default(autoincrement())
+  name        String     @unique
+  description String?
+  slug        String     @unique
+  parentId    Int?
+  parent      Category?  @relation("CategoryTree", fields: [parentId], references: [id])
+  children    Category[] @relation("CategoryTree")
+  entries          Entry[]
+  questions        Question[]
+  videos           Video[]
+  moduleMasteries  ModuleMastery[]
+  createdAt        DateTime   @default(now())
+  updatedAt   DateTime   @updatedAt
+}
+
+model Entry {
+  id         Int       @id @default(autoincrement())
+  title      String
+  content    String    @default("")
+  categoryId Int
+  category   Category  @relation(fields: [categoryId], references: [id])
+  tags       EntryTag[]
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+}
+
+model Tag {
+  id            Int            @id @default(autoincrement())
+  name          String         @unique
+  entries       EntryTag[]
+  questions     QuestionTag[]
+}
+
+model EntryTag {
+  entryId Int
+  tagId   Int
+  entry   Entry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  tag     Tag   @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([entryId, tagId])
+}
+
+model Video {
+  id           Int            @id @default(autoincrement())
+  title        String
+  description  String?
+  url          String         @default("")
+  embedUrl     String?
+  localPath    String?
+  instructor   String         @default("")
+  section      ExamType       @default(xingce)
+  categoryId   Int?
+  category     Category?      @relation(fields: [categoryId], references: [id])
+  durationSec  Int?
+  thumbnailUrl String?
+  sortOrder    Int            @default(0)
+  createdAt    DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+  progress     VideoProgress[]
+  notes        VideoNote[]
+}
+
+model VideoProgress {
+  id              Int      @id @default(autoincrement())
+  videoId         Int
+  video           Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId          String   @default("default")
+  playedSeconds   Int      @default(0)
+  durationSeconds Int      @default(0)
+  playbackRate    Float    @default(1.0)
+  completed       Boolean  @default(false)
+  lastWatchedAt   DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+  @@unique([videoId, userId])
+}
+
+model VideoNote {
+  id           Int      @id @default(autoincrement())
+  videoId      Int
+  video        Video    @relation(fields: [videoId], references: [id], onDelete: Cascade)
+  userId       String   @default("default")
+  timestampSec Int
+  content      String   @default("")
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}
+
+model Paper {
+  id           Int        @id @default(autoincrement())
+  title        String
+  examType     ExamType
+  paperYear    Int
+  paperType    String     @default("A")
+  content      String     @default("")
+  source       String     @default("")
+  totalScore   Int?
+  timeLimitMin Int?
+  questions    Question[]
+  createdAt    DateTime   @default(now())
+}
+
+model Question {
+  id             Int              @id @default(autoincrement())
+  paperId        Int?
+  paper          Paper?           @relation(fields: [paperId], references: [id])
+  categoryId     Int?
+  category       Category?        @relation(fields: [categoryId], references: [id])
+  questionType QuestionType
+  stem         String
+  options      String         @default("[]")
+  answer       String
+  explanation  String?
+  difficulty   Difficulty     @default(medium)
+  points       Int            @default(1)
+  tags         QuestionTag[]
+  testQuestions  TestQuestion[]
+  wrongRecords   WrongRecord[]
+  dailyQuestions DailyQuestion[]
+  createdAt      DateTime       @default(now())
+  updatedAt    DateTime       @updatedAt
+}
+
+model QuestionTag {
+  questionId Int
+  tagId      Int
+  question   Question @relation(fields: [questionId], references: [id], onDelete: Cascade)
+  tag        Tag      @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  @@id([questionId, tagId])
+}
+
+model TestSession {
+  id             Int            @id @default(autoincrement())
+  userId         String         @default("default")
+  mode           TestMode
+  title          String?
+  startedAt      DateTime       @default(now())
+  finishedAt     DateTime?
+  totalQuestions Int            @default(0)
+  answeredCount  Int            @default(0)
+  correctCount   Int            @default(0)
+  totalScore     Int            @default(0)
+  earnedScore    Int            @default(0)
+  timeLimitSec   Int?
+  elapsedSec     Int            @default(0)
+  status         SessionStatus  @default(in_progress)
+  questions      TestQuestion[]
+  createdAt      DateTime       @default(now())
+}
+
+model TestQuestion {
+  id          Int          @id @default(autoincrement())
+  sessionId   Int
+  session     TestSession  @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  questionId  Int
+  question    Question     @relation(fields: [questionId], references: [id])
+  sortOrder   Int
+  userAnswer  String?
+  isCorrect   Boolean?
+  timeSpentSec Int         @default(0)
+  @@unique([sessionId, sortOrder])
+}
+
+model WrongRecord {
+  id           Int         @id @default(autoincrement())
+  userId       String      @default("default")
+  questionId   Int
+  question     Question    @relation(fields: [questionId], references: [id])
+  wrongCount   Int         @default(1)
+  correctCount Int         @default(0)
+  lastWrongAt  DateTime    @default(now())
+  masteredAt   DateTime?
+  status       WrongStatus @default(active)
+  note         String?
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+  @@unique([userId, questionId])
+}
+
+model StudyLog {
+  id          Int          @id @default(autoincrement())
+  userId      String       @default("default")
+  date        DateTime
+  durationSec Int          @default(0)
+  activityType ActivityType
+  metadata    Json?
+  createdAt   DateTime     @default(now())
+  @@unique([userId, date, activityType])
+}
+
+model DailyStat {
+  id               Int      @id @default(autoincrement())
+  userId           String   @default("default")
+  date             DateTime
+  totalSec         Int      @default(0)
+  questionsDone    Int      @default(0)
+  questionsCorrect Int      @default(0)
+  videosWatched    Int      @default(0)
+  videoSec         Int      @default(0)
+  @@unique([userId, date])
+}
+
+model ModuleMastery {
+  id                Int       @id @default(autoincrement())
+  userId            String    @default("default")
+  categoryId        Int
+  category          Category  @relation(fields: [categoryId], references: [id])
+  questionsTotal    Int       @default(0)
+  questionsCorrect  Int       @default(0)
+  accuracy          Float?
+  lastPracticedAt   DateTime?
+  updatedAt         DateTime  @updatedAt
+  @@unique([userId, categoryId])
+}
+
+model Achievement {
+  id               Int                @id @default(autoincrement())
+  key              String             @unique
+  name             String
+  description      String
+  icon             String
+  condition        String             @default("{}")
+  userAchievements UserAchievement[]
+  createdAt        DateTime           @default(now())
+}
+
+model UserAchievement {
+  id             Int         @id @default(autoincrement())
+  userId         String      @default("default")
+  achievementId  Int
+  achievement    Achievement @relation(fields: [achievementId], references: [id])
+  unlockedAt     DateTime    @default(now())
+  progress       Int         @default(0)
+  target         Int         @default(1)
+  @@unique([userId, achievementId])
+}
+
+model DailyQuestion {
+  id              Int                @id @default(autoincrement())
+  questionId      Int
+  question        Question           @relation(fields: [questionId], references: [id])
+  date            DateTime           @unique
+  userDailyAnswers UserDailyAnswer[]
+  createdAt       DateTime           @default(now())
+}
+
+model UserDailyAnswer {
+  id              Int           @id @default(autoincrement())
+  userId          String        @default("default")
+  dailyQuestionId Int
+  dailyQuestion   DailyQuestion @relation(fields: [dailyQuestionId], references: [id])
+  answer          String
+  isCorrect       Boolean
+  answeredAt      DateTime      @default(now())
+  @@unique([userId, dailyQuestionId])
+}
+
+model UserPreference {
+  id        Int      @id @default(autoincrement())
+  userId    String   @unique @default("default")
+  theme     Theme    @default(system)
+  fontSize  FontSize @default(medium)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}

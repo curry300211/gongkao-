@@ -1,0 +1,9 @@
+node_modules
+.git
+.next
+*.md
+.env
+.env.local
+scripts
+prisma/migrations
+prisma/dev.db

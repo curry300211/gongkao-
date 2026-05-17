@@ -1,0 +1,20 @@
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"
+    environment:
+      DATABASE_URL: "file:/data/prod.db"
+      NODE_ENV: production
+      ADMIN_PASSWORD: ${ADMIN_PASSWORD:-changeme}
+    volumes:
+      - data:/data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+volumes:
+  data:
